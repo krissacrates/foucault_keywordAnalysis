@@ -1,0 +1,27 @@
+---
+title: "Lemmatization"
+author: "krissacrates"
+date: "23 5 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+## Introduction
+
+This guide will follow the process of creating right data for keyword analysis of
+Foucault's archaeologies. I will try to be as generic as possible, though I focus
+on outcomes important for my analysis.
+
+I prefer using [lemmas](https://en.wikipedia.org/wiki/Lemma_(morphology)), canonical forms of words, to [tokens](https://en.wikipedia.org/wiki/Lexical_analysis) in my keyword analysis for practical
+reasons. While tokens seem to be more compliant with computational lexical analysis,
+lemmas are more natural for readers to understand and don't create confusions in some
+core keywords, for instance
+
+* word: madness -> token: mad -> lemma: madness
+* word: experience -> token: experienc -> lemma: experience
+
+## Text cleaning
+
