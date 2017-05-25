@@ -25,3 +25,46 @@ core keywords, for instance
 
 ## Text cleaning
 
+### Loading the file
+
+Load a raw TXT file from the GitHub repository.
+
+```{r readBook}
+bookchoice <- c("History of Madness", "The Birth of the Clinic")
+
+## To run interactively, you can use menu() to choose from the books
+# thebook <- menu(bookchoice, title = "Choose the book you want to analyze:")
+ 
+## Otherwise we use History of madness in this guide. You can easily change for desired book if you reproduce the code yourself.
+thebook <- 1
+
+if (thebook == 1) {
+     myBook <- "1961_History-of-madness.txt"
+ } else if (thebook == 2) {
+    myBook <- "1963_Birth-of-the-clinic.txt"
+ } else {
+    break("Invalid choice!")
+ }
+
+if(!file.exists("./corpus-download")){dir.create("./corpus-download")}
+githubFile <- paste0("https://raw.githubusercontent.com/krissacrates/foucault_keywordAnalysis/master/corpus/", myBook)
+destination <- paste0("./corpus-download/", myBook)
+download.file(githubFile, destfile = destination, method = "curl")
+bookload <- readLines(destination)
+head(bookload)
+```
+  
+The content of the book has been loaded into `bookload`. R interpretes paragraph as a line.
+Now, we apply some cleaning process.
+
+```{r cleaning}
+cleanbook <- bookload
+cleanbook <- tolower(cleanbook) # lowercase everything
+cleanbook <- stringr::str_replace_all(cleanbook,"[^a-zA-Z\\s]", " ")    # remove everything that is not a letter
+cleanbook <- stringr::str_replace_all(cleanbook,"[\\s]+", " ")  # shrink to just one space
+## Credit: These functions are reused from Clean_String() function from http://www.mjdenny.com/Text_Processing_In_R.html
+head(cleanbook)
+```
+
+For POS lemmatization processing, I use *TreeTagger* sofware. It is important that you install the software corectly: [www.cis.uni-muenchen.de](http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/#Linux).
+
