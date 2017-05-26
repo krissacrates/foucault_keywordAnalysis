@@ -1,5 +1,5 @@
 ---
-title: "Lemmatization"
+title: "Foucault project: Lemmatization"
 author: "krissacrates"
 date: "23 5 2017"
 output: html_document
@@ -23,7 +23,75 @@ core keywords, for instance
 * word: madness -> token: mad -> lemma: madness
 * word: experience -> token: experienc -> lemma: experience
 
-## Text cleaning
+## Prerequisites
+
+For the POS lemmatization processing, I use *TreeTagger* sofware. It is important that you install the software corectly before you start: [www.cis.uni-muenchen.de](http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/#Linux).
+
+You can use following function to download all files into `~/tree-tagger` folder for easy installation:
+
+```{r treeTaggerFunction}
+# This preparation function downloads all the file necessary to install TreeTagger.
+# TreeTagger needs to be installed in the shell.
+# The source of the guide is: http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/
+# This function assumes Linus environment. 
+# Should you have any issues, please consult original guide and process accordingly.
+
+treeTaggerPreparation <- function() {
+    if(!file.exists("~/tree-tagger")){dir.create(path = "~/tree-tagger")}
+    
+    # Step 1: Download the tagger package for your system
+    taggerPackLinuxPath <- "http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tree-tagger-linux-3.2.1.tar.gz"
+    download.file(url = taggerPackLinuxPath, destfile = "~/tree-tagger/tree-tagger-linux-3.2.1.tar.gz", method = "auto")
+    
+    # Step 2: Download the tagging scripts into the same directory
+    taggingScripts <- "http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/tagger-scripts.tar.gz"
+    download.file(url = taggingScripts, destfile = "~/tree-tagger/tagger-scripts.tar.gz", method = "auto")
+    
+    # Step 3: Download the installation script install-tagger.sh
+    installationScript <- "http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/install-tagger.sh"
+    download.file(url = installationScript, destfile = "~/tree-tagger/install-tagger.sh", method = "auto")
+    
+    # Step 4: Download the parameter files for English and French
+    tagfile.english <-  "http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/english-par-linux-3.2-utf8.bin.gz"
+        # Tagset documentation: http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/Penn-Treebank-Tagset.pdf
+    tagfile.french <- "http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/french-par-linux-3.2-utf8.bin.gz"
+        # Tagset documentation: http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/data/french-tagset.html
+    download.file(url = tagfile.english, destfile = "~/tree-tagger/english-par-linux-3.2-utf8.bin.gz", method = "auto")
+    download.file(url = tagfile.french, destfile = "~/tree-tagger/french-par-linux-3.2-utf8.bin.gz", method = "auto")
+    
+    # Step 5: Open a terminal window and run the installation script in the directory where you have downloaded the files:
+    # sh install-tagger.sh
+    
+    # Step 6: Make a test, e.g.
+    # echo 'Hello world!' | cmd/tree-tagger-english 
+    # and 
+    # echo 'Je suis Michel.' | cmd/tagger-chunker-french
+    print("Now you are ready to install TreeTagger. Open a terminal window and run the installation script in the directory where you have downloaded the files: sh install-tagger.sh") 
+}
+```
+
+Save the function into `treeTaggerPreparation.R` file, then `source` and call function `treeTaggerPreparation()` in the terminal. This is what you write into the terminal:
+
+~$ _cd tree-tagger_
+tree-tagger$ _sh install-tagger.sh_
+
+  
+Test functionality by terminal command:
+  
+tree-tagger$ _echo 'Hello world!' | cmd/tree-tagger-english_
+
+Should you have any issues, you have to go back to the TreeTagger source.
+
+Load additional libraries:
+
+```{r libraries, cache=FALSE}
+install.packages("koRpus", dependencies = TRUE)
+library(koRpus)
+# See documentation for 'koRpus' package: https://cran.r-project.org/web/packages/koRpus/vignettes/koRpus_vignette.pdf
+```
+
+
+## Text preparation
 
 ### Loading the file
 
@@ -54,6 +122,9 @@ bookload <- readLines(destination)
 head(bookload)
 ```
   
+
+### Preparatory cleaning
+
 The content of the book has been loaded into `bookload`. R interpretes paragraph as a line.
 Now, we apply some cleaning process.
 
@@ -66,5 +137,30 @@ cleanbook <- stringr::str_replace_all(cleanbook,"[\\s]+", " ")  # shrink to just
 head(cleanbook)
 ```
 
-For POS lemmatization processing, I use *TreeTagger* sofware. It is important that you install the software corectly: [www.cis.uni-muenchen.de](http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/#Linux).
+## Tokenizing
+
+Set the Treetagger path according to local. Here, the `treeTaggerPreparation()` function is assumed.
+
+```{r setTreetaggerPath, cache=FALSE}
+set.kRp.env(TT.cmd = "~/tree-tagger/cmd/tree-tagger-english", lang = "en")
+```
+
+Before we begin tokenization, we have to create a file from the cleaned text, because of the way TreeTagger works. Then, let's tokenize!
+
+```{r tokenize}
+if(!dir.exists("./corpus-clean")){dir.create("./corpus-clean")}
+writeLines(cleanbook, con = "./corpus-clean/cleanBook.txt") # create output TXT file first
+tagged.book <- treetag("./corpus-clean/cleanBook.txt", lang = "en") # creates kRp.tagged class
+# str(describe(tagged.book))    # summary statistics
+book.df <- taggedText(tagged.book) # change kRp.tagged class into readable data frame
+head(book.df, 100)  # See overview of the tokens and lemmas
+```
+
+## Tokenized data frame cleaning
+
+
+
+
+
+
 
