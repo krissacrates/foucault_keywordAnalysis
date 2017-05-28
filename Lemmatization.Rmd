@@ -15,13 +15,12 @@ This guide will follow the process of creating right data for keyword analysis o
 Foucault's archaeologies. I will try to be as generic as possible, though I focus
 on outcomes important for my analysis.
 
-I prefer using [lemmas](https://en.wikipedia.org/wiki/Lemma_(morphology)), canonical forms of words, to [tokens](https://en.wikipedia.org/wiki/Lexical_analysis) in my keyword analysis for practical
-reasons. While tokens seem to be more compliant with computational lexical analysis,
+I prefer using [lemmatization](https://en.wikipedia.org/wiki/Lemma_(morphology)), canonical forms of words, to [stemming](https://en.wikipedia.org/wiki/Stemming) in my keyword analysis for practical reasons. While _stems_ seem to be more compliant with computational lexical analysis,
 lemmas are more natural for readers to understand and don't create confusions in some
 core keywords, for instance
 
-* word: madness -> token: mad -> lemma: madness
-* word: experience -> token: experienc -> lemma: experience
+* word: madness -> stem: mad -> lemma: madness
+* word: experience -> stem: experienc -> lemma: experience
 
 ## Prerequisites
 
@@ -72,7 +71,8 @@ treeTaggerPreparation <- function() {
 
 Save the function into `treeTaggerPreparation.R` file, then `source` and call function `treeTaggerPreparation()` in the R console. Once successfull, open the terminal (shell). If you are not in '~$' home folder, get there with `cd ..` commands or similar. Then write following:
 
-`~$ cd tree-tagger`
+`~$ cd tree-tagger`  
+  
 `tree-tagger$ sh install-tagger.sh`
   
   
@@ -88,7 +88,6 @@ Load additional libraries:
 install.packages("koRpus", dependencies = TRUE)
 library(koRpus)
 # See documentation for 'koRpus' package: https://cran.r-project.org/web/packages/koRpus/vignettes/koRpus_vignette.pdf
-library(dplyr)
 ```
 
 
@@ -99,21 +98,18 @@ library(dplyr)
 Load a raw TXT file from the GitHub repository.
 
 ```{r readBook}
-bookchoice <- c("History of Madness", "The Birth of the Clinic")
-
+bookchoice <- c("History of Madness", "The Birth of the Clinic", "Order of Things", "Archaeology of Knowledge")
+booksource <- c("1961_History-of-madness.txt", "1963_Birth-of-the-clinic.txt", "1966_Order-of-Things.txt", "1969_Archaeology-of-Knowledge.txt")
+bookshort.choice <- c("HF", "NC", "MC", "AS")
 ## To run interactively, you can use menu() to choose from the books
 # thebook <- menu(bookchoice, title = "Choose the book you want to analyze:")
  
 ## Otherwise we use History of madness in this guide. You can easily change for desired book if you reproduce the code yourself.
 thebook <- 1
+myBook <- booksource[thebook]
+bookshort <- bookshort.choice[thebook]
 
-if (thebook == 1) {
-     myBook <- "1961_History-of-madness.txt"
- } else if (thebook == 2) {
-    myBook <- "1963_Birth-of-the-clinic.txt"
- } else {
-    break("Invalid choice!")
- }
+if (is.na(myBook)){stop("No valid book choice! Start over...")}
 
 if(!file.exists("./corpus-download")){dir.create("./corpus-download")}
 githubFile <- paste0("https://raw.githubusercontent.com/krissacrates/foucault_keywordAnalysis/master/corpus/", myBook)
@@ -150,8 +146,9 @@ Before we begin tokenization, we have to create a file from the cleaned text, be
 
 ```{r tokenize}
 if(!dir.exists("./corpus-clean")){dir.create("./corpus-clean")}
-writeLines(cleanbook, con = "./corpus-clean/cleanBook.txt") # create output TXT file first
-tagged.book <- treetag("./corpus-clean/cleanBook.txt", lang = "en") # creates kRp.tagged class
+cleanbookPath <- paste0("./corpus-clean/clean_", myBook)
+writeLines(cleanbook, con = cleanbookPath) # create output TXT file first
+tagged.book <- treetag(cleanbookPath, lang = "en") # creates kRp.tagged class
 # str(describe(tagged.book))    # summary statistics
 book.df <- taggedText(tagged.book) # change kRp.tagged class into readable data frame
 head(book.df, 100)  # See overview of the tokens and lemmas
@@ -171,7 +168,8 @@ book.df[lemma.unknown, "lemma"]  <- tokens.toreplace  # replace '<unknowns>' for
 
 # save data frame into output CSV for later use
 if(!dir.exists("./output-files")){dir.create("./output-files")}
-write.csv(book.df, file = "./output-files/lemmas-fulltable.csv")
+outputPathFull <- paste0("./output-files/", bookshort, "_lemmas_full.csv")
+write.csv(book.df, file = outputPathFull)
 head(book.df, 20)
 ```
 
@@ -179,15 +177,16 @@ Create table of unique lemmas with count and frequency. We will use unique combi
 'lemma' and 'wclass' in order not to mix up the same lemmas with different classes (eg. 
 nouns and verbs), because we will only use _nouns_ in later analysis.
 
-```{r UniqueLemmas}
-# 'dplyr' package needed for the following operation
+```{r UniqueLemmas, message=FALSE}
+library(dplyr)  # 'dplyr' package needed for the following operation
 # Create data frame of a unique lemma+wclass combination with count and frequency
 uniqueLemmas.df <- book.df %>%
     group_by(lemma, wclass) %>%
     summarise(n = n()) %>%
     ungroup() %>%
     mutate(freq = n /sum(n))
-write.csv(uniqueLemmas.df, file = "./output-files/unique-lemmas.csv")
+outputPathUnique <- paste0("./output-files/", bookshort, "_lemmas_unique.csv")
+write.csv(uniqueLemmas.df, file = outputPathUnique)
 ```
 
 Create the subset of data frame consisting only with _nouns_. Nouns are suitable for
@@ -210,10 +209,16 @@ nounsLemmas.df <- nounsLemmas.df[-match("S", nounsLemmas.df$lemma), ]
 row.names(nounsLemmas.df) <- 1:nrow(nounsLemmas.df) # change row names accordingly
 
 # Output
-write.csv(nounsLemmas.df, file = "./output-files/nouns-lemmas.csv")
+outputPathNouns <- paste0("./output-files/", bookshort, "_lemmas_nouns.csv")
+write.csv(nounsLemmas.df, file = outputPathNouns)
 head(nounsLemmas.df, 20)
 ```
 
 That's it! Data is ready for wordcloud, heatmaps and similar pieces of keyword analysis.
+You can clean up all the variables, if you like. All data needed is in the output folder `./output-files`.
 
+```{r cleanup, message=FALSE, eval=FALSE}
+closeAllConnections()   # close connections to files if open
+rm(list = setdiff(ls(), lsf.str()))     # remove all values except for functions
+```
 
