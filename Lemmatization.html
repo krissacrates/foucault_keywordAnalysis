@@ -174,17 +174,15 @@ treeTaggerPreparation &lt;- function() {
     print(&quot;Now you are ready to install TreeTagger. Open a terminal window and run the installation script in the directory where you have downloaded the files: sh install-tagger.sh&quot;) 
 }</code></pre>
 <p>Save the function into <code>treeTaggerPreparation.R</code> file, then <code>source</code> and call function <code>treeTaggerPreparation()</code> in the terminal. This is what you write into the terminal:</p>
-<p>~$ <em>cd tree-tagger</em> tree-tagger$ <em>sh install-tagger.sh</em></p>
+<p>~$ <em>cd tree-tagger</em></p>
+<p>tree-tagger$ <em>sh install-tagger.sh</em></p>
 <p>Test functionality by terminal command:</p>
 <p>tree-tagger$ <em>echo ‘Hello world!’ | cmd/tree-tagger-english</em></p>
 <p>Should you have any issues, you have to go back to the TreeTagger source.</p>
 <p>Load additional libraries:</p>
-<pre class="r"><code>install.packages(&quot;koRpus&quot;, dependencies = TRUE)</code></pre>
-<pre><code>## Installing package into '/home/rstudio/R/x86_64-pc-linux-gnu-library/3.3'
-## (as 'lib' is unspecified)</code></pre>
-<pre class="r"><code>library(koRpus)</code></pre>
-<pre><code>## Loading required package: data.table</code></pre>
-<pre class="r"><code># See documentation for 'koRpus' package: https://cran.r-project.org/web/packages/koRpus/vignettes/koRpus_vignette.pdf</code></pre>
+<pre class="r"><code>install.packages(&quot;koRpus&quot;, dependencies = TRUE)
+library(koRpus)
+# See documentation for 'koRpus' package: https://cran.r-project.org/web/packages/koRpus/vignettes/koRpus_vignette.pdf</code></pre>
 </div>
 <div id="text-preparation" class="section level2">
 <h2>Text preparation</h2>
@@ -450,6 +448,64 @@ head(book.df, 100)  # See overview of the tokens and lemmas</code></pre>
 ## 98                                  Personal pronoun   NA   NA
 ## 99  Verb, non-3rd person singular present of &quot;to be&quot;   NA   NA
 ## 100                                               to   NA   NA</code></pre>
+</div>
+<div id="tokenized-data-frame-preparation" class="section level2">
+<h2>Tokenized data frame preparation</h2>
+<p>Clean original data frame and save it externally into CSV file.</p>
+<pre class="r"><code>book.df &lt;- book.df[, -7:-8] # remove unnecessary columns
+
+# Use &lt;token&gt; if &lt;lemma&gt; is unknown
+lemma.unknown &lt;- which(book.df[, &quot;lemma&quot;] == &quot;&lt;unknown&gt;&quot;) # identify rows of unknown lemmas
+tokens.toreplace &lt;- book.df[lemma.unknown, 1]   # create a vector of tokens in rows of unknown lemmas
+book.df[lemma.unknown, &quot;lemma&quot;]  &lt;- tokens.toreplace  # replace '&lt;unknowns&gt;' for tokens
+
+# save data frame into output CSV for later use
+if(!dir.exists(&quot;./output-files&quot;)){dir.create(&quot;./output-files&quot;)}
+write.csv(book.df, file = &quot;./output-files/lemmas-fulltable.csv&quot;)
+head(book.df, 20)</code></pre>
+<pre><code>##          token tag       lemma lttr      wclass
+## 1      history  NN     history    7        noun
+## 2           of  IN          of    2 preposition
+## 3      madness  NN     madness    7        noun
+## 4      preface  NN     preface    7        noun
+## 5           to  TO          to    2          to
+## 6          the  DT         the    3  determiner
+## 7      edition  NN     edition    7        noun
+## 8       pascal  NN      pascal    6        noun
+## 9          men NNS         man    3        noun
+## 10         are VBP          be    3        verb
+## 11          so  RB          so    2      adverb
+## 12 necessarily  RB necessarily   11      adverb
+## 13         mad  JJ         mad    3   adjective
+## 14        that  IN        that    4 preposition
+## 15         not  RB         not    3      adverb
+## 16       being VBG          be    5        verb
+## 17         mad  JJ         mad    3   adjective
+## 18       would  MD       would    5       modal
+## 19          be  VB          be    2        verb
+## 20       being VBG          be    5        verb
+##                                                desc
+## 1                            Noun, singular or mass
+## 2          Preposition or subordinating conjunction
+## 3                            Noun, singular or mass
+## 4                            Noun, singular or mass
+## 5                                                to
+## 6                                        Determiner
+## 7                            Noun, singular or mass
+## 8                            Noun, singular or mass
+## 9                                      Noun, plural
+## 10 Verb, non-3rd person singular present of &quot;to be&quot;
+## 11                                           Adverb
+## 12                                           Adverb
+## 13                                        Adjective
+## 14         Preposition or subordinating conjunction
+## 15                                           Adverb
+## 16    Verb, gerund or present participle of &quot;to be&quot;
+## 17                                        Adjective
+## 18                                            Modal
+## 19                       Verb, base form of &quot;to be&quot;
+## 20    Verb, gerund or present participle of &quot;to be&quot;</code></pre>
+<p>Create table of unique lemmas with frequencies and additional metrics.</p>
 </div>
 
 
