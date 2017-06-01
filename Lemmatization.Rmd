@@ -1,5 +1,5 @@
 ---
-title: "Foucault project: Lemmatization"
+title: "Foucault project: Lemmatization step-by-step"
 author: "krissacrates"
 date: "23 5 2017"
 output: html_document
