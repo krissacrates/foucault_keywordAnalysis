@@ -1,0 +1,127 @@
+---
+title: 'Foucaultize: Graphics step-by-step'
+author: "krissacrates"
+date: "6/2/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+## Wordcloud
+
+First install packages needed:
+
+```{r packages}
+## Install 'wordcloud2' package if needed
+packs <- installed.packages()
+packs.match <- match("wordcloud2", packs)  
+if (is.na(packs.match)) require("wordcloud2")
+library(wordcloud2)     # load packagnoune
+```
+
+Have your lemmatized files ready. Use `foucaultize()` function to prepare the files
+if needed. It is assumed that data is ready in the `./output-files` folder in your
+working directory.
+
+```{r chooseTable, eval=FALSE}
+## Cannot be evaluated by Knit due to interactive menu() command
+books <- c("History of Madness", "The Birth of the Clinic", "The Order of Things", 
+           "The Archaeology of Knowledge", "Other - I will provide the acronym")
+acronyms <- c("HF", "NC", "MC", "AS")
+myBook <- switch (menu(books, title = "Choose the book:") + 1,
+                NA, case1 = acronyms[1],
+                    case2 = acronyms[2],
+                    case3 = acronyms[3],
+                    case4 = acronyms[4],
+                    case5 = "other")    # interactive items cannot be knitted into HTML
+if (is.na(myBook)) warning("No book, no fun!")
+if (myBook == "other") myBook <- readline(prompt = "What is your book's acronym? (eg. HF): ")
+```
+
+Now load and adjust the dataset:
+
+```{r wordcloud2}
+## I set 'myBook' manually because previous code chunk cannot be knitted in HTML.
+myBook <- "HF"  # Remove if you use the previous code chunk
+############  
+pathFile <- paste0("./output-files/", myBook, "_lemmas_nouns.csv")
+cloud2.df <- read.csv(pathFile)
+cloud2.df <- cloud2.df[, c("lemma", "n")]    # subset dataframe to 2 columns as expected
+set.seed(8732)
+wordcloud2(cloud2.df, color = "random-light", backgroundColor="black")  
+```
+
+Credit: Some other folks did a great job [here](https://www.r-bloggers.com/the-wordcloud2-library/).
+  
+
+## Frequency barchart
+
+Another library needed:
+
+```{r lattice}
+packs.match <- match("lattice", packs)  
+if (is.na(packs.match)) require("lattice")
+library(lattice)     # load package
+```
+
+Then it's so easy:
+
+```{r barchart}
+myFile <- paste0(myBook, "_lemmas_nouns.csv")
+barchart(lemma ~ n, cloud2.df[1:15, ], col = "grey", xlab = "Term frequency", 
+         main = c("Lemma frequency in ", myFile))
+```
+
+
+## Heatmap
+
+Heatmap should represent distribution of occurences of the keyword throughout the book.
+
+Firstly, we have to prepare data in the right format to plot a heatmap.
+
+```{r heatmapData}
+fullPath <- paste0("./output-files/", myBook, "_lemmas_full.csv")   # path to full data CSV
+full.df <- read.csv(fullPath)   # read the file
+# Subset nouns only
+a <- which(full.df$wclass == "noun")    # vector of row numbers with nouns
+nouns.vector <- full.df[a, "lemma"] # subset only nouns based on 'a' vector
+remove(full.df) # cleanup memory from a big file
+
+# Some variable ad-hod definitions
+keyword <- "experience" # set keyword for which we plot the heatmap of occurences
+clusters <- 20L     # number of clusters (chunks) to split the whole book into
+
+logical.vector <- grepl(keyword, nouns.vector, ignore.case = TRUE)  # each occurence make TRUE otherwise FALSE
+volume.clusters <- ceiling( length(logical.vector) / clusters )  # number of keyword items in a cluster
+chunks <- split(logical.vector, ceiling(seq_along(logical.vector)/volume.clusters)) # create a list of chunks (= clusters)
+sum.clusters <- sapply(chunks, sum) # calculate sum of TRUE values each cluster - creates a numeric vector of sums
+heat.matrix <- matrix(sum.clusters, nrow = 1, ncol = length(sum.clusters) )  
+str(heat.matrix)
+```
+
+To create a heatmap, instal `plotly` package. Inspiration source: [plot.ly/r/heatmaps/](plot.ly/r/heatmaps/)
+
+```{r plotly}
+packs.match <- match("plotly", packs)  
+if (is.na(packs.match)) require("plotly")
+library(plotly)     # load packagnoune
+```
+
+Now, we are ready to plot a heatmap.
+
+```{r heatmap1}
+#Optimize heatmap visuals
+vals <- unique(scales::rescale(c(heat.matrix)))
+o <- order(vals, decreasing = FALSE)
+cols <- scales::col_numeric("Blues", domain = NULL)(vals)
+colz <- setNames(data.frame(vals[o], cols[o]), NULL)
+
+# Create a heatmap
+p <- plot_ly(y = keyword, z = heat.matrix, colorscale = colz, type = "heatmap", height = 200)
+p
+```
+
+
+
