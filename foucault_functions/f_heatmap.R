@@ -22,6 +22,7 @@ f_heatmap <- function() {
     }
     
     # Choose book to analyze
+    # Version 2.0
     chooseTheBook <- function() {
         books <- c("History of Madness", "The Birth of the Clinic", "The Order of Things", 
                    "The Archaeology of Knowledge", "Other - I will provide the acronym")

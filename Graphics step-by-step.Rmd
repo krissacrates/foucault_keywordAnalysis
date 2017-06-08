@@ -66,12 +66,12 @@ if (is.na(packs.match)) require("lattice")
 library(lattice)     # load package
 ```
 
-Then it's so easy:
+Then it's so easy: 
 
 ```{r barchart}
 myFile <- paste0(myBook, "_lemmas_nouns.csv")
 barchart(lemma ~ n, cloud2.df[1:15, ], col = "grey", xlab = "Term frequency", 
-         main = c("Lemma frequency in ", myFile))
+         main = paste("Lemma frequency in", myFile))
 ```
 
 
