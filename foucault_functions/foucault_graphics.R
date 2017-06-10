@@ -1,13 +1,19 @@
-f_heatmap <- function() {
+# This function unifies different types of graphics of the Foucaultize project
+
+foucault_graphics <- function(type, version = NA) {
+    
+    # version 1.0 (2017-06-10)
+    # supported types - "wordcloud", "barchart", "heatmap"; mandatory variable
+    # version refers to the type version; optional variable (no use in the 1.0 version)
     
     ###############################
     ## SECTION ONE: Subfunctions ##
     ###############################
     
     # Install required packages
-    # requiredPacks() version 2.0 (2017-06-07)
+    # requiredPacks() version 2.1 (2017-06-10) - packs.needed updated
     requiredPacks <- function() {
-        packs.needed <- c("plotly", "lattice") # name all packages to use
+        packs.needed <- c("wordcloud2", "plotly", "lattice") # name all packages to use
         packs <- installed.packages()
         packs.match <- match(packs.needed, packs)   # if packaged needed are not among installed, there is NA value
         packs.nonavailable <- which(is.na(packs.match)) # which positions in packs.needed are not installed
@@ -22,11 +28,14 @@ f_heatmap <- function() {
     }
     
     # Choose book to analyze
-    # Version 2.0
+    # Version 3.0 (2017-06-10) - enhanced with csvFile vector
     chooseTheBook <- function() {
+        # Definitions
         books <- c("History of Madness", "The Birth of the Clinic", "The Order of Things", 
                    "The Archaeology of Knowledge", "Other - I will provide the acronym")
         acronyms <- c("HF", "NC", "MC", "AS")
+        
+        # User choice of the book - store the acronym value
         myBook <- switch (menu(books, title = "Choose the book:") + 1,
                           NA, case1 = acronyms[1],
                           case2 = acronyms[2],
@@ -36,6 +45,29 @@ f_heatmap <- function() {
         if (myBook == "other") myBook <- readline(prompt = "What is your book's acronym? (eg. HF): ")
         if (is.na(myBook)) warning("No book, no fun!")
         return(myBook)
+    }        
+    
+    
+    # Find the right CSV file according to graph type
+    chooseTheFile <- function(x, y) {
+        # x = output from chooseTheBook(), ie. the book Acronym
+        # y = graph type
+        
+        if (y == "wordcloud" || y == "barchart") {
+            csvFile <- "_lemmas_nouns.csv"
+        } else if (y == "heatmap") {
+            csvFile <- "_lemmas_full.csv"
+        } 
+        
+        csvPath <- paste0("./output-files/", x, csvFile)   # construct path to the right csv
+        if (!file.exists(csvPath)) return(NA) else return(csvPath)
+    }
+    
+    # Create a wordcloud
+    f_wordcloud <- function(x) {
+        # x = input data frame
+        x <- x[, c("lemma", "n")]    # subset dataframe to 2 columns as expected
+        wordcloud2(x, color = "random-light", backgroundColor="black")  
     }
     
     # Construct the table for heatmap
@@ -79,27 +111,49 @@ f_heatmap <- function() {
     ## SECTION TWO: Code run ##
     ###########################
     
+    # Check function inputs
+    typeOptions <- c("wordcloud", "barchart", "heatmap")    # supported types in current version
+    versionOptions <- NULL  # not supported in version 1.0 of foucault_graphics()
+    t <- match(type, typeOptions)
+    if (is.na(t)) stop("Function failed: You haven't provided supported graph 'type' argument.")
+    
     # requiredPacks()
     if (!requiredPacks()) stop("Function failed: requiredPacks() error.")  # load packages needed; break if missing
     
     #chooseTheBook()
     bookAcronym <- chooseTheBook()  # choose the right book with the function
     if (is.na(bookAcronym) || bookAcronym == "other") stop("Function failed: 
-            chooseTheBook() error.")  # check if data input exists out of the chooseTheBook()
-    csvPath <- paste0("./output-files/", bookAcronym, "_lemmas_full.csv")  # construct the path
-    if (!file.exists(csvPath)) stop(paste("File does not exists. 
-                                Check the /output-files folder!"))     # check if the file exists
+                                                           chooseTheBook() error.")  # check if data input exists out of the chooseTheBook()
     
-    #heatTable()
-    # Get first input data to the function
-    cat("Cool! You're about to create a heatmap. \n")
-    kws <- readline(prompt = "Input a keyword you want to analyze: ")
-    ch <- readline(prompt = "How many parts you want your book to split into? ")
-    ch <- as.integer(ch)    # coerce to integer
-    if (is.na(ch)) stop("Sorry! It obviously needs to be integer. Function broke...")
-    heatMatrix <- heatTable(bookAcronym, kws, ch)   # Perform the function to ge the matrix table
+    # chooseTheFile()
+    filePath <- chooseTheFile(x = bookAcronym, y = type)
+    if (!file.exists(filePath)) stop("CSV file does not exists! Any idea...? - Function filePaht() failed.")
+    sourceData <- read.csv(filePath)
+    
+    # Run the graph
+    if (type == "wordcloud") {  # wordcloud part
+        
+        f_w <- f_wordcloud(x = sourceData)
+        f_w
+        
+    } else if (type == "barchart") {    # barchart part
+        
+        f_b <- barchart(lemma ~ n, sourceData[1:15, ], col = "grey", xlab = "Term frequency", 
+                        main = paste("Frequency of top keyowrds in ", bookAcronym))
+        f_b
+        
+    } else if (type == "heatmap") {     # heatmap part
+        
+        kws <- readline(prompt = "Input a keyword you want to analyze: ")
+        ch <- readline(prompt = "How many parts you want your book to split into? ")
+        ch <- as.integer(ch)    # coerce to integer
+        if (is.na(ch)) stop("Sorry! It obviously needs to be integer. Function failed...")
+        heatMatrix <- heatTable(bookAcronym, kws, ch)   # Perform the function to ge the matrix table
 
-    #plotHeatmap()
-    p <- plotHeatmap(kws, heatMatrix)  # plot the matrix into heatmap
-    p   # output
+        #plotHeatmap()
+        p <- plotHeatmap(kws, heatMatrix)  # plot the matrix into heatmap
+        p   # output
+        
+    }
+    
 }
