@@ -1,0 +1,146 @@
+---
+title: "keywords_intersection"
+author: "krissacrates"
+date: "10 6 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+```
+
+## Get data
+
+
+```{r packages, eval=TRUE}
+# evaluation is turned off in this code chunk
+# "ggplot2" package needs to be active
+library(ggplot2)
+library(dplyr)
+```
+
+Find common keywords for HF and NC.
+
+```{r getTables}
+
+HF_top100 <- read.csv("./output-files/HF_lemmas_nouns.csv")
+x <- HF_top100[1:20, c("lemma", "freq")]
+HF_top100 <- HF_top100[1:20, "lemma"]
+HF_top100 <- as.character(HF_top100)
+
+NC_top100 <- read.csv("./output-files/NC_lemmas_nouns.csv")
+y <- NC_top100[1:20, c("lemma", "freq")]
+NC_top100 <- NC_top100[1:20, "lemma"]
+NC_top100 <- as.character(NC_top100)
+
+
+HF_NC_intersection <- intersect(HF_top100, NC_top100)
+intersection.df <- data.frame(lemma = HF_NC_intersection)
+
+intersection.df <- merge(intersection.df, x, by = "lemma")
+intersection.df <- plyr::rename(intersection.df, c("freq" = "HF_freq"))
+
+intersection.df <- merge(intersection.df, y, by = "lemma")
+intersection.df <- plyr::rename(intersection.df, c("freq" = "NC_freq"))
+
+cumul_freq <- intersection.df$HF_freq + intersection.df$NC_freq
+intersection.df <- data.frame(intersection.df, cumulative_freq = cumul_freq)
+intersection.df <- intersection.df[order(intersection.df[, "cumulative_freq"], decreasing = TRUE), ]
+intersection.df
+```
+
+
+Make graph of the intersected keywords. Standard barchart:
+
+```{r graph1}
+# source: http://www.r-graph-gallery.com/80-circular-barplot/
+# make data
+data = data.frame(lemma = intersection.df$lemma, cumulative_freq = intersection.df$cumulative_freq )
+# Usual bar plot :
+graph1 <- ggplot(data, aes(x = lemma, y = cumulative_freq ,fill = cumulative_freq )) + geom_bar(width = 0.85, stat="identity", position = position_stack(reverse = TRUE)) + coord_flip()
+graph1
+```
+
+
+Circular barchart:
+
+```{r graph2}
+graph2 <- ggplot(data, aes(x = lemma, y = cumulative_freq, fill = cumulative_freq )) + geom_bar(width = 0.85, stat="identity") + 
+
+# To use a polar plot and not a basic barplot
+coord_polar(theta = "y") +
+
+#Remove useless labels of axis
+xlab("") + ylab("") +
+
+#Increase ylim to avoid having a complete circle
+ylim(c(0,0.008)) + 
+
+#Add group labels close to the bars :
+geom_text(data = data, hjust = 1.5, size = 5, aes(x = lemma, y = 0, label = lemma)) +
+
+#Remove useless legend, y axis ticks and y axis text
+theme(legend.position = "none" , axis.text.y = element_blank() , axis.ticks = element_blank())
+```
+
+
+Add another intersection with MC:
+
+```{r table2}
+MC_top100 <- read.csv("./output-files/MC_lemmas_nouns.csv")
+z <- MC_top100[1:20, c("lemma", "freq")]
+MC_top100 <- MC_top100[1:20, "lemma"]
+MC_top100 <- as.character(MC_top100)
+
+HF_NC_MC_intersection <- intersect(HF_NC_intersection, MC_top100)
+# Intersection for first 20 keywords in MC with previous set.
+HF_NC_MC_intersection
+```
+
+There are only 4 keywords. There are only 2 with conceptual power: order and knowledge.
+Trully, we can consider it as conceptual foundation for archaeology. But it is still very narrow. 
+Let's try first 100 keywords from MC to intersect with the previous set.
+
+```{r table3}
+MC_top100 <- read.csv("./output-files/MC_lemmas_nouns.csv")
+z <- MC_top100[1:100, c("lemma", "freq")]
+MC_top100 <- MC_top100[1:100, "lemma"]
+MC_top100 <- as.character(MC_top100)
+
+HF_NC_MC_intersection <- intersect(HF_NC_intersection, MC_top100)
+HF_NC_MC_intersection
+```
+
+Great! In the second foundation layer, we have 3 more: truth, experience, and body.
+Let's create a new table for intersection of previous set with MC:
+
+```{r getTable2}
+intersection2.df <- data.frame(lemma = HF_NC_MC_intersection)
+
+intersection2.df <- merge(intersection2.df, x, by = "lemma")
+intersection2.df <- plyr::rename(intersection2.df, c("freq" = "HF_freq"))
+
+intersection2.df <- merge(intersection2.df, y, by = "lemma")
+intersection2.df <- plyr::rename(intersection2.df, c("freq" = "NC_freq"))
+
+intersection2.df <- merge(intersection2.df, z, by = "lemma")
+intersection2.df <- plyr::rename(intersection2.df, c("freq" = "MC_freq"))
+
+cumul_freq <- intersection2.df$HF_freq + intersection2.df$NC_freq + intersection2.df$MC_freq
+intersection2.df <- data.frame(intersection2.df, cumulative_freq = cumul_freq)
+intersection2.df <- intersection2.df[order(intersection2.df[, "cumulative_freq"], decreasing = TRUE), ]
+intersection2.df
+
+```
+
+Let's visualize:
+
+```{r graph3}
+# make data
+data = data.frame(lemma = intersection2.df$lemma, cumulative_freq = intersection2.df$cumulative_freq )
+# Usual bar plot :
+graph3 <- ggplot(data, aes(x = lemma, y = cumulative_freq ,fill = cumulative_freq )) + geom_bar(width = 0.85, stat="identity", position = position_stack(reverse = TRUE)) + coord_flip()
+graph3
+```
+
+
